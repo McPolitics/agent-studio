@@ -4,15 +4,13 @@
   "description": "Autonomous AI-powered game development studio with specialized agents",
   "main": "index.js",
   "scripts": {
-    "setup": "npm run install:scripts && npm run install:web && npm run install:python",
+    "setup": "node setup.js",
     "install:scripts": "cd scripts && npm install",
     "install:web": "cd web-game && npm install", 
     "install:python": "pip install -r scripts/requirements.txt",
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:server\"",
     "dev:web": "cd web-game && npm run dev",
-    "dev:server": "cd scripts && node llm_server.js",
-    "start:services": "docker-compose -f config/docker-compose.yml up -d",
-    "stop:services": "docker-compose -f config/docker-compose.yml down",
+    "dev:server": "echo 'Local server not needed - using configured LLM provider'",
     "director": "cd scripts && node director.js",
     "enqueue": "cd scripts && node enqueue.js",
     "agents:start": "concurrently \"npm run agent:coder\" \"npm run agent:designer\" \"npm run agent:uiux\"",
@@ -21,7 +19,11 @@
     "agent:uiux": "cd scripts && node uiux_agent.js",
     "build": "cd web-game && npm run build",
     "preview": "cd web-game && npm run preview",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "clean": "npm run clean:tasks && npm run clean:logs",
+    "clean:tasks": "node -e \"require('fs-extra').emptyDirSync('./tasks')\"",
+    "clean:logs": "node -e \"require('fs-extra').emptyDirSync('./logs')\"",
+    "test": "node test-system.js",
+    "test-system": "node test-system.js"
   },
   "keywords": [
     "ai",
@@ -43,7 +45,9 @@
   },
   "homepage": "https://github.com/your-username/agent-studio#readme",
   "devDependencies": {
-    "concurrently": "^8.2.0"
+    "concurrently": "^8.2.0",
+    "fs-extra": "^11.1.1",
+    "chalk": "^4.1.2"
   },
   "engines": {
     "node": ">=18.0.0",

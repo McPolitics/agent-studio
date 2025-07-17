@@ -160,3 +160,40 @@ web-game/public/assets/generated/
 
 # Generated epics
 epics.json
+
+# Agent Studio specific
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Generated files and task queue
+tasks/
+logs/
+output/
+epics.json
+
+# Game assets and builds
+web-game/dist/
+web-game/assets/*.png
+web-game/assets/*.jpg
+web-game/assets/*.gif
+web-game/assets/*.mp3
+web-game/assets/*.wav
+
+# Backup files
+config-backup/
+*.backup
+*.bak
+
+# Models and large files
+models/
+*.gguf
+*.bin
+*.safetensors
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
