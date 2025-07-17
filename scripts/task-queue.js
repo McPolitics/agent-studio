@@ -6,10 +6,18 @@ const config = require('./config');
 /**
  * File-based task queue system
  * Replaces Redis for local single-machine operation
+ * Supports project-specific task queues
  */
 class TaskQueue {
-  constructor() {
-    this.queueDir = config.paths.tasks;
+  constructor(projectPath = null) {
+    if (projectPath) {
+      // Project-specific task queue
+      this.queueDir = path.join(projectPath, 'tasks');
+    } else {
+      // Global task queue (legacy support)
+      this.queueDir = config.paths.tasks;
+    }
+    
     this.pendingDir = path.join(this.queueDir, 'pending');
     this.processingDir = path.join(this.queueDir, 'processing');
     this.completedDir = path.join(this.queueDir, 'completed');
@@ -17,6 +25,7 @@ class TaskQueue {
     
     this.pollInterval = config.taskQueue.pollInterval;
     this.isPolling = false;
+    this.projectPath = projectPath;
   }
 
   async init() {
@@ -31,19 +40,21 @@ class TaskQueue {
   /**
    * Add a task to the queue
    */
-  async enqueue(epic) {
-    const taskId = this.generateTaskId();
-    const task = {
+  async enqueue(agentRole, task) {
+    const taskId = task.id || this.generateTaskId();
+    const queueTask = {
       id: taskId,
-      epic,
+      role: agentRole,
+      epic: task.epic || task,
+      projectId: task.projectId,
+      projectPath: task.projectPath || this.projectPath,
       createdAt: new Date().toISOString(),
       status: 'pending'
     };
 
     const taskFile = path.join(this.pendingDir, `${taskId}.json`);
-    await fs.writeFile(taskFile, JSON.stringify(task, null, 2));
+    await fs.writeFile(taskFile, JSON.stringify(queueTask, null, 2));
     
-    console.log(`📥 Enqueued task: ${epic.title} (${taskId})`);
     return taskId;
   }
 

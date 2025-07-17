@@ -1,5 +1,52 @@
 # Agent Studio
 
+> **Multi-Project AI-Powered Game Development Studio**
+
+Welcome to Agent Studio - an revolutionary autonomous development system that creates complete games from simple text prompts using specialized AI agents. **Now featuring advanced project management for unlimited game development!**
+
+## ✨ Key Features
+
+- 🎬 **Director Agent**: Intelligent project breakdown and epic planning
+- 🔧 **Coder Agent**: Phaser.js game development and systems programming  
+- 🎨 **Designer Agent**: AI-generated sprites, backgrounds, and visual assets (OpenAI DALL-E + Stable Diffusion)
+- 🎛️ **UI/UX Agent**: User interface design and experience optimization
+- 🚀 **Automated Pipeline**: From concept to deployed game in minutes
+- 🗂️ **Multi-Project Management**: Create unlimited independent games
+- 🔄 **Iterative Development**: Continuously expand existing games with new features
+- 💻 **Cross-Platform**: Works on Windows and Linux without Docker
+- 🔌 **Multiple LLM Providers**: Supports Ollama, OpenAI, Anthropic, and local models
+
+## 🎮 **NEW: Project Management System**
+
+Agent Studio now supports **unlimited concurrent game projects** with professional organization:
+
+### **Unique Project Folders**
+- Each game gets its own isolated environment
+- Timestamped unique IDs prevent conflicts
+- Complete project structure with build system
+- Professional organization ready for version control
+
+### **Iterative Development**
+- **Continue existing projects** with new features
+- **Smart epic merging** preserves context
+- **Unlimited iterations** without starting over
+- **AI remembers** your game's history and goals
+
+### **Examples**
+```bash
+# Create multiple independent games
+npm run director:new "Retro arcade shooter with power-ups"
+npm run director:new "Tower defense with unique upgrade paths" 
+npm run director:new "Puzzle platformer with gravity mechanics"
+
+# Expand existing games with new features
+npm run director continue "Add boss battles and special abilities"
+npm run director continue "Add multiplayer support and leaderboards"
+npm run director continue "Add particle effects and animations"
+```
+
+**📖 [Complete Project Management Guide →](PROJECT_MANAGEMENT_USER_GUIDE.md)**
+
 > Autonomous AI-Powered Game Development Studio
 
 Welcome to Agent Studio - an innovative autonomous development system that creates complete games from simple text prompts using specialized AI agents. **Now simplified for single-machine operation on Windows and Linux!**
@@ -57,16 +104,78 @@ Welcome to Agent Studio - an innovative autonomous development system that creat
    ```
 
 3. **Start Creating Games!**
-   ```bash
-   # Generate project plan
-   npm run director "Create a 2D platformer with jumping character and coins"
    
-   # Start the agents
+   **Create Your First Project:**
+   ```bash
+   # Create new game project
+   npm run director:new "Create a 2D platformer with jumping character and coins"
+   
+   # With custom name
+   npm run director:new "Create a racing game" --name "Speed Racer Pro"
+   
+   # With auto-development (AI agents start immediately)
+   cd scripts && node director-enhanced.js new "Tower defense game" -e
+   ```
+   
+   **Project Management:**
+   ```bash
+   # List all your game projects
+   npm run director:list
+   
+   # Switch between projects
+   npm run director activate <project-id>
+   
+   # Show active project
+   npm run director:list --active
+   ```
+   
+   **Expand Existing Games:**
+   ```bash
+   # Add features to active project
+   npm run director continue "Add boss battles and power-ups"
+   
+   # Add features with auto-development
+   cd scripts && node director-enhanced.js continue "Add multiplayer" -e
+   ```
+   
+   **Start AI Development:**
+   ```bash
+   # Start the AI agents (works on active project)
    npm run agents:start
    
-   # Preview your game (in another terminal)
-   npm run dev:web
+   # Preview your game (navigate to project folder first)
+   cd scripts/projects/your-project-folder
+   npm run dev
    ```
+
+## 🎯 Quick Examples
+
+### **Multi-Project Workflow**
+```bash
+# Create different game types
+npm run director:new "Space exploration survival game"
+npm run director:new "Medieval castle defense with upgrades"  
+npm run director:new "Puzzle platformer with time mechanics"
+
+# Work on specific games
+npm run director activate space-exploration-project-id
+npm run director continue "Add alien encounters and trading"
+
+npm run director activate castle-defense-project-id  
+npm run director continue "Add siege weapons and magic spells"
+```
+
+### **Iterative Game Development**
+```bash
+# Start simple
+npm run director:new "Basic racing game"
+
+# Build complexity over time
+npm run director continue "Add power-ups and boost mechanics"
+npm run director continue "Add time trials and leaderboards" 
+npm run director continue "Add car customization and tracks"
+npm run director continue "Add weather effects and day/night cycle"
+```
 
 ## 📚 Configuration
 
@@ -87,7 +196,12 @@ OPENAI_MODEL=gpt-3.5-turbo
 # Application Settings
 PORT=3000
 DEBUG=true
-IMAGE_GENERATION=disabled        # or 'local' for AI image generation
+
+# Image Generation Configuration
+IMAGE_GENERATION_PROVIDER=disabled  # openai, stable-diffusion, local, disabled
+OPENAI_IMAGE_API_KEY=your_key_here   # For DALL-E image generation
+OPENAI_IMAGE_MODEL=dall-e-3          # dall-e-2 or dall-e-3
+STABLE_DIFFUSION_API_URL=http://localhost:7860  # For local Stable Diffusion
 
 # File Paths
 TASK_QUEUE_DIRECTORY=./tasks
@@ -166,32 +280,79 @@ node enqueue.js epics.json --dry-run
 
 ## 🗂️ Project Structure
 
+Agent Studio now creates **unique project folders** for each game, enabling multiple projects and iterative development:
+
 ```
 agent-studio/
+├── 📁 projects/             # All game projects
+│   ├── 📁 2025-01-01_space-game_abc123/
+│   │   ├── 📄 project.json  # Project metadata
+│   │   ├── 📄 package.json  # Dependencies
+│   │   ├── 📁 src/          # Game source code
+│   │   ├── 📁 assets/       # AI-generated assets
+│   │   ├── 📁 tasks/        # Project task queue
+│   │   ├── 📁 epics/        # Project planning
+│   │   ├── 📁 dist/         # Built game
+│   │   └── 📁 logs/         # Project logs
+│   └── 📁 2025-01-02_puzzle-game_def456/
 ├── 📁 scripts/              # Agent workers and core logic
+│   ├── project-manager.js   # Project management
+│   ├── director-enhanced.js # Enhanced project director
 │   ├── config.js            # Cross-platform configuration
 │   ├── llm-client.js        # Universal LLM client
-│   ├── task-queue.js        # File-based task queue
-│   ├── director.js          # Project planning agent
+│   ├── task-queue.js        # Project-aware task queue
 │   ├── coder_agent.js       # Code generation agent
 │   ├── designer_agent.py    # Asset creation agent
 │   └── uiux_agent.js        # UI/UX design agent
-├── 📁 web-game/             # Generated game files
-│   ├── src/                 # Game source code
-│   ├── assets/              # Generated assets
-│   └── package.json         # Game dependencies
-├── 📁 tasks/                # Task queue storage
-│   ├── pending/             # Waiting tasks
-│   ├── processing/          # Active tasks
-│   ├── completed/           # Done tasks
-│   └── failed/              # Failed tasks
-├── 📁 output/               # Generated files
-├── 📁 logs/                 # Application logs
+├── � active-project.json   # Currently active project
 ├── .env                     # Configuration
 └── setup.js                # Setup script
 ```
 
 ## 🛠️ Commands Reference
+
+### 🏗️ Project Management
+
+**Create New Projects:**
+```bash
+npm run director:new "game concept"           # Auto-generated name
+npm run director:new "concept" --name "Name"  # Custom name
+npm run director:new "concept" --auto-enqueue # Auto-start development
+```
+
+**Continue Existing Projects:**
+```bash
+npm run director:list                         # List all projects
+npm run director:list --active              # Show active project only
+npm run director activate <projectId>        # Switch active project
+npm run director continue "new features"     # Add to active project
+npm run director continue <projectId> "features" # Add to specific project
+```
+
+**Legacy Support:**
+```bash
+npm run director "game concept"              # Creates new project (legacy)
+npm run director:legacy "concept"           # Original director
+```
+
+### 🏭 Development Workflow
+
+**Agent Operations:**
+```bash
+npm run agents:start                        # Start all agents (uses active project)
+npm run agent:coder                         # Start only coder agent
+npm run agent:designer                      # Start only designer agent  
+npm run agent:uiux                          # Start only UI/UX agent
+```
+
+**Game Development:**
+```bash
+cd projects/your-project-folder             # Navigate to project
+npm install                                 # Install dependencies
+npm run dev                                 # Start development server
+npm run build                               # Build for production
+npm run preview                             # Preview built game
+```
 
 ### Setup & Installation
 ```bash
@@ -218,6 +379,69 @@ npm run clean             # Clean tasks and logs
 npm run clean:tasks       # Clean task queue
 npm run clean:logs        # Clean log files
 ```
+
+## 🎨 AI Image Generation
+
+Agent Studio supports multiple AI image generation providers to create game assets automatically.
+
+### Supported Providers
+
+#### OpenAI DALL-E (Recommended)
+- **High Quality**: Excellent for game assets and sprites
+- **Cost**: Pay per image generated
+- **Setup**: Requires OpenAI API key
+
+```env
+IMAGE_GENERATION_PROVIDER=openai
+OPENAI_IMAGE_API_KEY=your_openai_api_key
+OPENAI_IMAGE_MODEL=dall-e-3        # or dall-e-2
+OPENAI_IMAGE_SIZE=1024x1024        # 1024x1024, 512x512, or 256x256
+OPENAI_IMAGE_QUALITY=standard      # standard or hd
+```
+
+#### Stable Diffusion (Local)
+- **Free**: Run locally with your own hardware
+- **Customizable**: Full control over models and settings
+- **Setup**: Requires local Stable Diffusion installation
+
+```env
+IMAGE_GENERATION_PROVIDER=stable-diffusion
+STABLE_DIFFUSION_API_URL=http://localhost:7860
+STABLE_DIFFUSION_MODEL=stable-diffusion-v1-5
+```
+
+#### Disabled (Default)
+- **Placeholder Assets**: Creates simple colored rectangles
+- **No Cost**: Free to use
+- **Quick Start**: No additional setup required
+
+```env
+IMAGE_GENERATION_PROVIDER=disabled
+```
+
+### Image Generation Settings
+
+```env
+# Style and format
+IMAGE_GENERATION_STYLE=pixel-art    # pixel-art, realistic, cartoon
+IMAGE_GENERATION_FORMAT=png         # png, jpg, webp
+MAX_IMAGE_SIZE=1024                 # Maximum dimension in pixels
+ENABLE_IMAGE_UPSCALING=false        # Experimental upscaling
+```
+
+### Testing Image Generation
+
+```bash
+# Test the image generation system
+cd scripts
+python test_image_generation.py
+```
+
+The Designer Agent will automatically analyze your game requirements and generate appropriate assets like:
+- **Character sprites** for players and enemies
+- **Background images** for game environments  
+- **UI elements** for buttons and interface
+- **Game icons** for items and power-ups
 
 ## 🔧 Troubleshooting
 
@@ -257,6 +481,32 @@ chmod +x scripts/*.js
 ### Debug Mode
 
 Set `DEBUG=true` in `.env` for verbose logging.
+
+## 📚 Comprehensive Documentation
+
+### **📖 User Guides**
+- **[� Documentation Index](DOCUMENTATION_INDEX.md)** - Navigate all documentation easily
+- **[�🚀 Quick Reference Card](QUICK_REFERENCE.md)** - Essential commands and workflows  
+- **[Project Management User Guide](PROJECT_MANAGEMENT_USER_GUIDE.md)** - Complete guide to multi-project development
+- **[Best Practices Guide](BEST_PRACTICES.md)** - Professional development patterns and recommendations
+- **[Quick Start Guide](QUICKSTART.md)** - Get started in 5 minutes
+
+### **🔧 Technical References**  
+- **[Project Management Technical Reference](PROJECT_MANAGEMENT_TECHNICAL_REFERENCE.md)** - Deep technical documentation
+- **[Architecture Documentation](docs/architecture.md)** - System design and components
+- **[Agent Prompts Reference](docs/prompts.md)** - AI agent configuration and prompts
+
+### **🎯 Feature Documentation**
+- **[AI Image Generation Guide](AI_IMAGE_GENERATION_SUCCESS.md)** - OpenAI DALL-E and Stable Diffusion integration
+- **[Project Management Features](PROJECT_MANAGEMENT_FINAL_SUCCESS.md)** - Complete feature overview
+- **[Feedback System](docs/feedback.md)** - AI learning and improvement mechanisms
+
+### **🚀 Advanced Topics**
+- **Multi-project game development workflows**
+- **Iterative feature development strategies** 
+- **AI agent optimization and customization**
+- **Professional project organization patterns**
+- **Scaling from prototype to production**
 
 ## 🎯 Example Workflows
 

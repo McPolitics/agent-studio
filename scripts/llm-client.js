@@ -10,6 +10,15 @@ class LLMClient {
     this.config = config.llm;
   }
 
+  getProvider() {
+    return this.provider;
+  }
+
+  async initialize() {
+    // Initialization logic if needed
+    return true;
+  }
+
   async chat(messages, options = {}) {
     switch (this.provider) {
       case 'ollama':

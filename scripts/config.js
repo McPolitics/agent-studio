@@ -3,7 +3,7 @@ const fs = require('fs').promises;
 const os = require('os');
 
 // Load environment variables
-require('dotenv').config();
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 /**
  * Configuration module for Agent Studio

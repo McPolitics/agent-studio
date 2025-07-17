@@ -4,6 +4,7 @@ const chalk = require('chalk');
 const config = require('./config');
 const LLMClient = require('./llm-client');
 const TaskQueue = require('./task-queue');
+const ProjectManager = require('./project-manager');
 
 // Configuration
 const AGENT_ROLE = 'coder';
@@ -11,7 +12,9 @@ const POLL_INTERVAL = config.taskQueue.pollInterval;
 
 let llmClient;
 let taskQueue;
+let projectManager;
 let isRunning = true;
+let currentProject = null;
 
 // Coder Agent System Prompt
 const CODER_SYSTEM_PROMPT = `You are a Coder Agent specializing in Phaser.js game development. Your role is to implement game logic, scenes, and interactive systems based on provided specifications.
@@ -28,6 +31,7 @@ FILE STRUCTURE:
 - src/systems/ - Game systems (physics, audio, input)
 - src/utils/ - Utility functions
 - src/config/ - Game configuration
+- src/ui/ - User interface components
 
 CODING STANDARDS:
 - Use ES6 classes and modules
@@ -36,15 +40,21 @@ CODING STANDARDS:
 - Implement proper error handling
 - Use meaningful variable and function names
 - Optimize for performance
+- Consider asset loading from ../assets/ directory
+
+CURRENT PROJECT CONTEXT:
+- Project: {{PROJECT_NAME}}
+- Output Directory: {{OUTPUT_DIR}}
+- Assets Directory: {{ASSETS_DIR}}
 
 OUTPUT FORMAT:
 For each file, provide:
-1. File path (relative to web-game/)
+1. File path (relative to src/)
 2. Complete file content
 3. Brief description of functionality
 
 EXAMPLE OUTPUT:
----FILE: src/scenes/GameScene.js---
+---FILE: scenes/GameScene.js---
 class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
@@ -59,21 +69,38 @@ Main game scene implementing player movement and collision detection
 
 TASK: {{TASK_PROMPT}}
 
-Generate complete, production-ready code files.`;
+Generate complete, production-ready code files that integrate well with the existing project structure.`;
 
 async function initializeAgent() {
   try {
     console.log(chalk.blue('🔧 Initializing Coder Agent...'));
     
+    // Initialize project manager
+    projectManager = new ProjectManager();
+    
+    // Get active project
+    currentProject = await projectManager.getActiveProject();
+    if (!currentProject) {
+      console.log(chalk.yellow('⚠️  No active project found. Agent will use global task queue.'));
+      console.log(chalk.cyan('💡 Use "director activate <projectId>" to set an active project.'));
+    } else {
+      console.log(chalk.green(`📁 Working with project: ${currentProject.name}`));
+    }
+    
+    // Initialize task queue (project-specific if available)
+    const queuePath = currentProject ? currentProject.folders.root : null;
+    taskQueue = new TaskQueue(queuePath);
+    await taskQueue.init();
+    
     // Ensure directories exist
     await config.ensureDirectories();
+    if (currentProject) {
+      await fs.ensureDir(currentProject.folders.src);
+      await fs.ensureDir(currentProject.folders.assets);
+    }
     
     // Initialize LLM client
     llmClient = new LLMClient();
-    
-    // Initialize task queue
-    taskQueue = new TaskQueue();
-    await taskQueue.init();
     
     // Check LLM health
     const isHealthy = await llmClient.checkHealth();
@@ -94,8 +121,21 @@ async function processTask(task) {
   console.log(chalk.blue(`🔨 Processing task: ${task.epic.title}`));
   
   try {
-    // Prepare the prompt
-    const prompt = CODER_SYSTEM_PROMPT.replace('{{TASK_PROMPT}}', task.epic.prompt);
+    // Determine output directory
+    const outputDir = task.projectPath 
+      ? path.join(task.projectPath, 'src')
+      : (currentProject ? currentProject.folders.src : config.paths.gameOutput);
+    
+    const assetsDir = task.projectPath
+      ? path.join(task.projectPath, 'assets')
+      : (currentProject ? currentProject.folders.assets : config.paths.assets);
+    
+    // Prepare the prompt with project context
+    let prompt = CODER_SYSTEM_PROMPT
+      .replace('{{TASK_PROMPT}}', task.epic.prompt)
+      .replace('{{PROJECT_NAME}}', task.projectId || currentProject?.name || 'Unknown')
+      .replace('{{OUTPUT_DIR}}', outputDir)
+      .replace('{{ASSETS_DIR}}', assetsDir);
     
     // Generate code using LLM
     console.log(chalk.blue('🧠 Generating code...'));
@@ -111,8 +151,8 @@ async function processTask(task) {
       throw new Error('No files were generated from the response');
     }
     
-    // Save files to the web-game directory
-    const savedFiles = await saveGeneratedFiles(files);
+    // Save files to the appropriate project directory
+    const savedFiles = await saveGeneratedFiles(files, outputDir);
     
     const duration = Date.now() - startTime;
     console.log(chalk.green(`✅ Completed task: ${task.epic.title} (${duration}ms)`));
@@ -121,7 +161,8 @@ async function processTask(task) {
     return {
       success: true,
       files: savedFiles,
-      duration: duration
+      duration: duration,
+      outputDir: outputDir
     };
     
   } catch (error) {
@@ -152,15 +193,14 @@ function parseGeneratedFiles(response) {
   return files;
 }
 
-async function saveGeneratedFiles(files) {
+async function saveGeneratedFiles(files, outputDir) {
   const savedFiles = [];
-  const webGameDir = config.paths.webGame;
   
   for (const file of files) {
     try {
-      // Ensure the file path is safe and within the web-game directory
-      const relativePath = file.path.startsWith('src/') ? file.path : `src/${file.path}`;
-      const fullPath = path.join(webGameDir, relativePath);
+      // Ensure the file path is safe and relative to src/
+      const relativePath = file.path.startsWith('src/') ? file.path.substring(4) : file.path;
+      const fullPath = path.join(outputDir, relativePath);
       
       // Ensure the directory exists
       await fs.ensureDir(path.dirname(fullPath));
