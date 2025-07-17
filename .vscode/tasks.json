@@ -1,0 +1,346 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Quantize Model",
+      "type": "shell",
+      "command": "bash",
+      "args": ["scripts/quantize_model.sh"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "Downloads and quantizes Llama 2-7B model for local inference"
+    },
+    {
+      "label": "Start LLM Server",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/llm_server.js"],
+      "group": "build",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^🚀 LLM Server running on port",
+          "endsPattern": "^✅ LLM Server initialized"
+        }
+      },
+      "detail": "Starts the local LLM inference server"
+    },
+    {
+      "label": "Start Docker Services",
+      "type": "shell",
+      "command": "docker-compose",
+      "args": ["-f", "config/docker-compose.yml", "up", "-d"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "Starts Redis, Prometheus, Grafana, and Sentry services"
+    },
+    {
+      "label": "Run Director",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/director.js", "${input:userPrompt}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "new",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "Runs Director Agent to break down user prompt into epics",
+      "dependsOn": ["Start Docker Services"]
+    },
+    {
+      "label": "Enqueue Epics",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/enqueue.js"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "Enqueues epics from epics.json into Redis for agent processing"
+    },
+    {
+      "label": "Run Director and Enqueue",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Run Director", "Enqueue Epics"],
+      "group": "build",
+      "detail": "Runs Director Agent and then enqueues the resulting epics"
+    },
+    {
+      "label": "Start Coder Agent",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/coder_agent.js"],
+      "group": "build",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^🚀 Coder Agent Starting",
+          "endsPattern": "^👀 Polling for coder tasks"
+        }
+      },
+      "detail": "Starts the Coder Agent worker for processing coding tasks"
+    },
+    {
+      "label": "Start Designer Agent",
+      "type": "shell",
+      "command": "python",
+      "args": ["scripts/designer_agent.py"],
+      "group": "build",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^🚀 Designer Agent Starting",
+          "endsPattern": "^👀 Polling for designer tasks"
+        }
+      },
+      "detail": "Starts the Designer Agent worker for generating visual assets"
+    },
+    {
+      "label": "Start UI/UX Agent",
+      "type": "shell",
+      "command": "node",
+      "args": ["scripts/uiux_agent.js"],
+      "group": "build",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^🚀 UI/UX Agent Starting",
+          "endsPattern": "^👀 Polling for UI/UX tasks"
+        }
+      },
+      "detail": "Starts the UI/UX Agent worker for designing user interfaces"
+    },
+    {
+      "label": "Start All Agents",
+      "dependsOn": ["Start Coder Agent", "Start Designer Agent", "Start UI/UX Agent"],
+      "group": "build",
+      "detail": "Starts all agent workers simultaneously"
+    },
+    {
+      "label": "Build Web Game",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "options": {
+        "cwd": "${workspaceFolder}/web-game"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": ["$tsc"],
+      "detail": "Builds the web game for production using Vite"
+    },
+    {
+      "label": "Serve Web Game",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "options": {
+        "cwd": "${workspaceFolder}/web-game"
+      },
+      "group": "build",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Local:.*http://localhost",
+          "endsPattern": "^.*ready in"
+        }
+      },
+      "detail": "Serves the web game in development mode with hot reloading"
+    },
+    {
+      "label": "Install Dependencies",
+      "type": "shell",
+      "command": "npm",
+      "args": ["install"],
+      "options": {
+        "cwd": "${workspaceFolder}/scripts"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "Installs Node.js dependencies for agent scripts"
+    },
+    {
+      "label": "Install Python Dependencies",
+      "type": "shell",
+      "command": "pip",
+      "args": ["install", "-r", "scripts/requirements.txt"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "Installs Python dependencies for Designer Agent"
+    },
+    {
+      "label": "Install Web Game Dependencies",
+      "type": "shell",
+      "command": "npm",
+      "args": ["install"],
+      "options": {
+        "cwd": "${workspaceFolder}/web-game"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "Installs dependencies for the web game frontend"
+    },
+    {
+      "label": "Setup Project",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Install Dependencies",
+        "Install Python Dependencies", 
+        "Install Web Game Dependencies"
+      ],
+      "group": "build",
+      "detail": "Installs all project dependencies"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "userPrompt",
+      "description": "Enter your game idea or project description",
+      "default": "Create a 2D platformer game with a player character, enemies, collectible coins, and multiple levels. Include smooth animations, sound effects, and a scoring system.",
+      "type": "promptString"
+    }
+  ]
+}

@@ -1,0 +1,178 @@
+name: Deploy Agent Studio Game
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: |
+          scripts/package-lock.json
+          web-game/package-lock.json
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: Install script dependencies
+      run: |
+        cd scripts
+        npm ci
+
+    - name: Install Python dependencies
+      run: |
+        pip install -r scripts/requirements.txt
+
+    - name: Install web game dependencies
+      run: |
+        cd web-game
+        npm ci
+
+    - name: Lint JavaScript
+      run: |
+        cd scripts
+        npx eslint . --ext .js --max-warnings 0 || true
+
+    - name: Lint Python
+      run: |
+        python -m flake8 scripts/designer_agent.py --max-line-length=100 --ignore=E203,W503 || true
+
+    - name: Test LLM Server
+      run: |
+        cd scripts
+        timeout 30s node llm_server.js &
+        sleep 5
+        curl -f http://localhost:5000/health || exit 1
+        curl -X POST http://localhost:5000/v1/generate \
+          -H "Content-Type: application/json" \
+          -d '{"prompt":"test","max_tokens":10}' || exit 1
+
+    - name: Test Redis Connection
+      run: |
+        redis-cli ping
+
+    - name: Build web game
+      run: |
+        cd web-game
+        npm run build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: web-game-build
+        path: web-game/dist/
+        retention-days: 30
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: web-game/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd web-game
+        npm ci
+
+    - name: Build for production
+      run: |
+        cd web-game
+        npm run build
+      env:
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        ANALYTICS_ID: ${{ secrets.ANALYTICS_ID }}
+
+    - name: Deploy to Netlify
+      uses: nwtgck/actions-netlify@v2.1
+      with:
+        publish-dir: './web-game/dist'
+        production-branch: main
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: "Deploy from GitHub Actions"
+        enable-pull-request-comment: false
+        enable-commit-comment: true
+        overwrites-pull-request-comment: true
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+    - name: Report deployment status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "✅ Deployment successful"
+          curl -X POST https://api.github.com/repos/${{ github.repository }}/issues \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "title": "✅ Deployment Successful - ${{ github.sha }}",
+              "body": "The Agent Studio game has been successfully deployed!\n\n**Commit:** ${{ github.sha }}\n**Branch:** ${{ github.ref_name }}\n**Deployed at:** $(date -u +\"%Y-%m-%d %H:%M:%S UTC\")\n\n🎮 [View Game](https://your-netlify-url.netlify.app)\n📊 [View Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
+              "labels": ["deployment", "success"]
+            }' || true
+        else
+          echo "❌ Deployment failed"
+          curl -X POST https://api.github.com/repos/${{ github.repository }}/issues \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "title": "❌ Deployment Failed - ${{ github.sha }}",
+              "body": "The Agent Studio game deployment has failed!\n\n**Commit:** ${{ github.sha }}\n**Branch:** ${{ github.ref_name }}\n**Failed at:** $(date -u +\"%Y-%m-%d %H:%M:%S UTC\")\n\n🔍 [View Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n**Please check the logs and fix the issues.**",
+              "labels": ["deployment", "failed", "bug"]
+            }' || true
+        fi
+
+  notification:
+    needs: [test, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Send notification
+      run: |
+        if [ "${{ needs.deploy.result }}" = "success" ]; then
+          echo "Sending success notification..."
+          # Add webhook or notification service here
+        elif [ "${{ needs.deploy.result }}" = "failure" ]; then
+          echo "Sending failure notification..."
+          # Add error notification here
+        fi

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agent Studio Game</title>
+    
+    <!-- Sentry Error Tracking -->
+    <script
+      src="https://browser.sentry-cdn.com/7.99.0/bundle.tracing.min.js"
+      integrity="sha384-..."
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      Sentry.init({
+        dsn: "YOUR_SENTRY_DSN_HERE", // Replace with actual Sentry DSN
+        integrations: [
+          new Sentry.BrowserTracing(),
+        ],
+        tracesSampleRate: 1.0,
+        environment: import.meta.env.MODE || 'production',
+        beforeSend(event) {
+          // Filter out development errors
+          if (import.meta.env.DEV && event.exception) {
+            console.warn('Sentry (dev mode):', event);
+            return null; // Don't send in development
+          }
+          return event;
+        }
+      });
+    </script>
+
+    <!-- Analytics Placeholder -->
+    <script>
+      // Google Analytics or other analytics
+      // Will be configured based on deployment environment
+      window.analytics = {
+        track: function(event, properties) {
+          console.log('Analytics:', event, properties);
+        }
+      };
+    </script>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #1a1a1a;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        overflow: hidden;
+      }
+      
+      #game-container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+      }
+      
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #ffffff;
+        text-align: center;
+        z-index: 1000;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #333;
+        border-top: 4px solid #007acc;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .loading-text {
+        font-size: 18px;
+        margin-bottom: 10px;
+      }
+      
+      .loading-subtitle {
+        font-size: 14px;
+        color: #888;
+      }
+      
+      #error-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        text-align: center;
+        padding: 20px;
+      }
+      
+      .error-content {
+        max-width: 500px;
+        padding: 40px;
+        background: #2a2a2a;
+        border-radius: 8px;
+        border: 1px solid #ff4444;
+      }
+      
+      .error-title {
+        font-size: 24px;
+        margin-bottom: 20px;
+        color: #ff4444;
+      }
+      
+      .error-message {
+        font-size: 16px;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      
+      .error-actions button {
+        background: #007acc;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 0 10px;
+        font-size: 14px;
+      }
+      
+      .error-actions button:hover {
+        background: #005a9e;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <div id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading Agent Studio Game</div>
+        <div class="loading-subtitle">Initializing Phaser.js...</div>
+      </div>
+    </div>
+
+    <div id="error-overlay">
+      <div class="error-content">
+        <div class="error-title">Game Load Error</div>
+        <div class="error-message" id="error-message">
+          Failed to load the game. Please check your connection and try again.
+        </div>
+        <div class="error-actions">
+          <button onclick="location.reload()">Retry</button>
+          <button onclick="reportError()">Report Issue</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Global error handling
+      window.addEventListener('error', function(event) {
+        console.error('Global error:', event.error);
+        showError('Script Error: ' + event.error.message);
+        
+        // Report to Sentry
+        if (window.Sentry) {
+          Sentry.captureException(event.error);
+        }
+      });
+
+      window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+        showError('Promise Rejection: ' + event.reason);
+        
+        // Report to Sentry
+        if (window.Sentry) {
+          Sentry.captureException(event.reason);
+        }
+      });
+
+      function showError(message) {
+        document.getElementById('error-message').textContent = message;
+        document.getElementById('error-overlay').style.display = 'flex';
+      }
+
+      function hideLoading() {
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.style.display = 'none';
+        }
+      }
+
+      function reportError() {
+        // Open GitHub issues or send to error reporting service
+        const issueUrl = 'https://github.com/your-repo/agent-studio/issues/new';
+        const title = encodeURIComponent('Game Load Error');
+        const body = encodeURIComponent(`Error: ${document.getElementById('error-message').textContent}\n\nUser Agent: ${navigator.userAgent}\nURL: ${location.href}\nTimestamp: ${new Date().toISOString()}`);
+        
+        window.open(`${issueUrl}?title=${title}&body=${body}`, '_blank');
+      }
+
+      // Game analytics
+      function trackGameEvent(event, data = {}) {
+        if (window.analytics) {
+          window.analytics.track(event, {
+            ...data,
+            timestamp: Date.now(),
+            session_id: sessionStorage.getItem('session_id') || 'unknown'
+          });
+        }
+      }
+
+      // Generate session ID
+      if (!sessionStorage.getItem('session_id')) {
+        sessionStorage.setItem('session_id', Date.now().toString(36) + Math.random().toString(36).substr(2));
+      }
+
+      // Track page load
+      trackGameEvent('game_page_loaded', {
+        user_agent: navigator.userAgent,
+        screen_resolution: `${screen.width}x${screen.height}`,
+        viewport: `${window.innerWidth}x${window.innerHeight}`
+      });
+    </script>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
